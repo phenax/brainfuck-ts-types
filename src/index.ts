@@ -27,27 +27,26 @@ type UpdateCell<St extends State<Nat, Nat[], Nat[]>, Op extends keyof Operation<
   St[2]
 ]
 
-// type DecrementCell<St extends State<Nat, Nat[], Nat[]>> = [
-//   St[0],
-//   St[1] extends [infer H extends Nat, ...infer T extends Nat[]] ? [Succ<H>, ...T] : St[1],
-//   St[2]
-// ]
-
 type Interpreter<St extends State<Nat, Nat[], Nat[]>, Expr extends string> =
   Expr extends '' ? St
   : Expr extends `+${infer rest extends string}` ? Interpreter<UpdateCell<St, 'Succ'>, rest>
-  : Expr extends `-${infer rest extends string}` ? Interpreter<St, rest>
+  : Expr extends `-${infer rest extends string}` ? Interpreter<UpdateCell<St, 'Pred'>, rest>
+  : Expr extends `>${infer rest extends string}` ? Interpreter<[Succ<St[0]>, St[1], St[2]], rest>
+  : Expr extends `<${infer rest extends string}` ? Interpreter<[Pred<St[0]>, St[1], St[2]], rest>
   : never
+
+type _x = Interpreter<State<_1, GenerateList<_3, _0>, []>, '+>++'>
+
 
 
 type Assert<T extends true> = T
 type IsEq<A, B> = [A] extends [B] ? [B] extends [A] ? true : false : false
 
-type _x = Interpreter<State<_1, GenerateList<_3, _0>, []>, '+++++'>
-
 export type _tests = [
   Assert<IsEq<Interpreter<State<_0, GenerateList<_3, _0>, []>, '+++++'>, State<_0, [_5, _0, _0], []>>>,
   Assert<IsEq<Interpreter<State<_1, GenerateList<_3, _0>, []>, '+++++'>, State<_1, [_0, _5, _0], []>>>,
-  // Assert<IsEq<Interpreter<State<_0, GenerateList<_3, _0>, []>, '+++++--'>, State<_0, [_3, _0, _0], []>>>,
+  Assert<IsEq<Interpreter<State<_0, GenerateList<_3, _0>, []>, '+++++--'>, State<_0, [_3, _0, _0], []>>>,
+  Assert<IsEq<Interpreter<State<_1, GenerateList<_3, _0>, []>, '+>++'>, State<_2, [_0, _1, _2], []>>>,
+  Assert<IsEq<Interpreter<State<_2, GenerateList<_3, _0>, []>, '++<+'>, State<_1, [_0, _1, _2], []>>>,
 ]
 
