@@ -39,8 +39,11 @@ type GetCurCell<Cur extends Nat, Cells extends Nat[]> =
 
 type whitespace = ' ' | '\n' | '\t'
 
+declare const error: unique symbol;
+type ParseError<Msg extends string> = { [error]: Msg }
+
 type Interpreter<St extends State<Nat, Nat[], Nat[], string[]>, Expr extends string> =
-  Expr extends '' ? St
+  Expr extends '' ? (St[3] extends [] ? St : ParseError<'Pending loop'>)
   : Expr extends `${whitespace}${infer rest extends string}` ? Interpreter<St, rest>
   : Expr extends `+${infer rest extends string}` ? Interpreter<UpdateCell<St, 'Succ'>, rest>
   : Expr extends `-${infer rest extends string}` ? Interpreter<UpdateCell<St, 'Pred'>, rest>
@@ -51,8 +54,8 @@ type Interpreter<St extends State<Nat, Nat[], Nat[], string[]>, Expr extends str
   : Expr extends `]${infer rest extends string}` ?
     GetCurCell<St[0], St[1]> extends _0
       ? Interpreter<[St[0], St[1], St[2], St[3] extends [string, ...(infer stack extends string[])] ? stack : []], rest>
-      : St[3] extends [infer goto extends string, ...string[]] ? Interpreter<St, goto> : never
-  : never
+      : St[3] extends [infer goto extends string, ...string[]] ? Interpreter<St, goto> : ParseError<'Invalid loop'>
+  : ParseError<'Invalid character'>
 
 type _x = Interpreter<[_0, GenerateList<_6, _0>, [], []], '+++>++++>++++<<[>+<-]>.[>+<-]>.'>
 
@@ -102,6 +105,20 @@ export type _tests = [
   Assert<IsEq<
     Interpreter<[_0, [_0, _0, _0], [], []], '+++>++++>++++<<[>+<-]>.[>+<-]>.'>,
     State<_2, [_0, _0, Succ<Succ<Succ<_8>>>], [_7, Succ<Succ<Succ<_8>>>], []>
+  >>,
+
+  'Sad path',
+  Assert<IsEq<
+    Interpreter<[_0, [_0, _0, _0], [], []], 'klshjklsd'>,
+    ParseError<'Invalid character'>
+  >>,
+  Assert<IsEq<
+    Interpreter<[_0, [_0, _0, _0], [], []], '++++]'>,
+    ParseError<'Invalid loop'>
+  >>,
+  Assert<IsEq<
+    Interpreter<[_0, [_0, _0, _0], [], []], '+++[++'>,
+    ParseError<'Pending loop'>
   >>,
 ]
 
