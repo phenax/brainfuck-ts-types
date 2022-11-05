@@ -38,12 +38,16 @@ type GetCurCell<Cur extends Nat, Cells extends Nat[]> =
   : Cells extends [any, ...(infer Tail extends Nat[])] ? GetCurCell<Pred<Cur>, Tail>
   : never
 
+type whitespace = ' ' | '\n' | '\t'
+
 type Interpreter<St extends State<Nat, Nat[], Nat[], string[]>, Expr extends string> =
   Expr extends '' ? St
+  : Expr extends `${whitespace}${infer rest extends string}` ? Interpreter<St, rest>
   : Expr extends `+${infer rest extends string}` ? Interpreter<UpdateCell<St, 'Succ'>, rest>
   : Expr extends `-${infer rest extends string}` ? Interpreter<UpdateCell<St, 'Pred'>, rest>
   : Expr extends `>${infer rest extends string}` ? Interpreter<[Succ<St[0]>, St[1], St[2], St[3]], rest>
   : Expr extends `<${infer rest extends string}` ? Interpreter<[Pred<St[0]>, St[1], St[2], St[3]], rest>
+  : Expr extends `.${infer rest extends string}` ? Interpreter<[St[0], St[1], [...St[2], GetCurCell<St[0], St[1]>], St[3]], rest>
   : Expr extends `[${infer rest extends string}` ? Interpreter<[St[0], St[1], St[2], [rest, ...St[3]]], rest>
   : Expr extends `]${infer rest extends string}` ?
     GetCurCell<St[0], St[1]> extends _0
@@ -51,7 +55,7 @@ type Interpreter<St extends State<Nat, Nat[], Nat[], string[]>, Expr extends str
       : St[3] extends [infer goto extends string, ...any[]] ? Interpreter<St, goto> : never
   : never
 
-type _x = Interpreter<State<_0, [_3, _1, _1], [], []>, '[->+<]'>
+type _x = Interpreter<[_0, [_0, _0, _0], [], []], '++++++++ [>+ <-]'>
 
 type Assert<T extends true> = T
 type IsEq<A, B> = [A] extends [B] ? [B] extends [A] ? true : false : false
@@ -76,6 +80,14 @@ export type _tests = [
   Assert<IsEq<
     Interpreter<State<_2, GenerateList<_3, _0>, [], []>, '++<+'>,
     State<_1, [_0, _1, _2], [], []>
+  >>,
+  Assert<IsEq<
+    Interpreter<State<_0, [_3, _1, _1], [], []>, '[->+<]'>,
+    State<_0, [_0, _4, _1], [], []>
+  >>,
+  Assert<IsEq<
+    Interpreter<State<_0, [_3, _1, _1], [], []>, '[->.+<]'>,
+    State<_0, [_0, _4, _1], [_1, _2, _3], []>
   >>,
 ]
 
