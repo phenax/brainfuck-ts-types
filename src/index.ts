@@ -15,14 +15,14 @@ type Operation<N extends Nat> = {
 type UpdateCellAtN<N extends Nat, Ls extends Nat[], Op extends keyof Operation<Nat>, Acc extends Nat[] = []> =
   N extends _0 ? [
     ...Acc,
-    ...(Ls extends [] ? []
+    ...(Ls extends [] ? Ls
       : Ls extends [infer H extends Nat, ...infer T extends Nat[]]
       ? [Operation<H>[Op], ...T] : Ls
     )
   ]
   : Ls extends [infer H extends Nat, ...(infer Tail extends Nat[])]
     ? UpdateCellAtN<Pred<N>, Tail, Op, [...Acc, H]>
-  : Ls
+  : [...Acc, ...Ls]
 
 type UpdateCell<St extends State<Nat, Nat[], Nat[], string[]>, Op extends keyof Operation<Nat>> = [
   St[0],
@@ -37,14 +37,14 @@ type GetCurCell<Cur extends Nat, Cells extends Nat[]> =
     ? GetCurCell<Pred<Cur>, tail>
     : never
 
-type whitespace = ' ' | '\n' | '\t'
+type Whitespace = ' ' | '\n' | '\t'
 
 declare const error: unique symbol;
 type ParseError<Msg extends string> = { [error]: Msg }
 
 type Interpreter<St extends State<Nat, Nat[], Nat[], string[]>, Expr extends string> =
   Expr extends '' ? (St[3] extends [] ? St : ParseError<'Pending loop'>)
-  : Expr extends `${whitespace}${infer rest extends string}` ? Interpreter<St, rest>
+  : Expr extends `${Whitespace}${infer rest extends string}` ? Interpreter<St, rest>
   : Expr extends `+${infer rest extends string}` ? Interpreter<UpdateCell<St, 'Succ'>, rest>
   : Expr extends `-${infer rest extends string}` ? Interpreter<UpdateCell<St, 'Pred'>, rest>
   : Expr extends `>${infer rest extends string}` ? Interpreter<[Succ<St[0]>, St[1], St[2], St[3]], rest>
@@ -57,68 +57,95 @@ type Interpreter<St extends State<Nat, Nat[], Nat[], string[]>, Expr extends str
       : St[3] extends [infer goto extends string, ...string[]] ? Interpreter<St, goto> : ParseError<'Invalid loop'>
   : ParseError<'Invalid character'>
 
-type _x = Interpreter<[_0, GenerateList<_6, _0>, [], []], '+++>++++>++++<<[>+<-]>.[>+<-]>.'>
+
+/* ############################ Test cases ############################ */
 
 type Assert<T extends true> = T
 type IsEq<A, B> = [A] extends [B] ? [B] extends [A] ? true : false : false
 
-export type _tests = [
-  'Increment/Decrement',
-  Assert<IsEq<
-    Interpreter<State<_0, GenerateList<_3, _0>, [], []>, '+++++'>,
-    State<_0, [_5, _0, _0], [], []>
-  >>,
-  Assert<IsEq<
-    Interpreter<State<_1, GenerateList<_3, _0>, [], []>, '+++++'>,
-    State<_1, [_0, _5, _0], [], []>
-  >>,
-  Assert<IsEq<
-    Interpreter<State<_0, GenerateList<_3, _0>, [], []>, '+++++--'>,
-    State<_0, [_3, _0, _0], [], []>
-  >>,
+export type _tests = {
+  '### Increment/Decrement': [
+    Assert<IsEq<
+      Interpreter<State<_0, GenerateList<_3, _0>, [], []>, '+++++'>,
+      State<_0, [_5, _0, _0], [], []>
+    >>,
+    Assert<IsEq<
+      Interpreter<State<_1, GenerateList<_3, _0>, [], []>, '+++++'>,
+      State<_1, [_0, _5, _0], [], []>
+    >>,
+    Assert<IsEq<
+      Interpreter<State<_0, GenerateList<_3, _0>, [], []>, '+++++--'>,
+      State<_0, [_3, _0, _0], [], []>
+    >>,
+  ],
 
-  'Shifts',
-  Assert<IsEq<
-    Interpreter<State<_1, GenerateList<_3, _0>, [], []>, '+>++'>,
-    State<_2, [_0, _1, _2], [], []>
-  >>,
-  Assert<IsEq<
-    Interpreter<State<_2, GenerateList<_3, _0>, [], []>, '++<+'>,
-    State<_1, [_0, _1, _2], [], []>
-  >>,
+  '### Shifts': [
+    Assert<IsEq<
+      Interpreter<State<_1, GenerateList<_3, _0>, [], []>, '+>++'>,
+      State<_2, [_0, _1, _2], [], []>
+    >>,
+    Assert<IsEq<
+      Interpreter<State<_2, GenerateList<_3, _0>, [], []>, '++<+'>,
+      State<_1, [_0, _1, _2], [], []>
+    >>,
+  ],
 
-  'Loops',
-  Assert<IsEq<
-    Interpreter<State<_0, [_3, _1, _1], [], []>, '[->+<]'>,
-    State<_0, [_0, _4, _1], [], []>
-  >>,
-  Assert<IsEq<
-    Interpreter<State<_0, [_3, _1, _1], [], []>, '[->.+<]'>,
-    State<_0, [_0, _4, _1], [_1, _2, _3], []>
-  >>,
-  Assert<IsEq<
-    Interpreter<[_0, [_0, _0, _0], [], []], '+++--+++++- [>+ <-]'>,
-    State<_0, [_0, _5, _0], [], []>
-  >>,
+  '### Loops': [
+    Assert<IsEq<
+      Interpreter<State<_0, [_3, _1, _1], [], []>, '[->+<]'>,
+      State<_0, [_0, _4, _1], [], []>
+    >>,
+    Assert<IsEq<
+      Interpreter<State<_0, [_3, _1, _1], [], []>, '[->.+<]'>,
+      State<_0, [_0, _4, _1], [_1, _2, _3], []>
+    >>,
+    Assert<IsEq<
+      Interpreter<[_0, [_0, _0, _0], [], []], '+++--+++++- [>+ <-]'>,
+      State<_0, [_0, _5, _0], [], []>
+    >>,
+  ],
 
-  'Complex',
-  Assert<IsEq<
-    Interpreter<[_0, [_0, _0, _0], [], []], '+++>++++>++++<<[>+<-]>.[>+<-]>.'>,
-    State<_2, [_0, _0, Succ<Succ<Succ<_8>>>], [_7, Succ<Succ<Succ<_8>>>], []>
-  >>,
+  '### Complex': [
+    'Add 3 numbers',
+    Assert<IsEq<
+      Interpreter<[_0, [_0, _0, _0], [], []], '+++>++++>++++<<[>+<-]>.[>+<-]>.'>,
+      State<_2, [_0, _0, Succ<Succ<Succ<_8>>>], [_7, Succ<Succ<Succ<_8>>>], []>
+    >>,
+    'Swap',
+    Assert<IsEq<
+      Interpreter<[_0, GenerateList<_3, _0>, [], []], '+++>++++<<[>>+<<-]>[<+>-]>[<+>-]'>,
+      State<_2, [_4, _3, _0], [], []>
+    >>,
+    'Multiplication',
+    Assert<IsEq<
+      Interpreter<[_0, GenerateList<_4, _0>, [], []], '++++>+++<[>[->+>+<<]>[-<+>]<<-]>>>.'>,
+      State<_3, [_0, _3, _0, Succ<Succ<Succ<Succ<_8>>>>], [Succ<Succ<Succ<Succ<_8>>>>], []>
+    >>,
+  ],
 
-  'Sad path',
-  Assert<IsEq<
-    Interpreter<[_0, [_0, _0, _0], [], []], 'klshjklsd'>,
-    ParseError<'Invalid character'>
-  >>,
-  Assert<IsEq<
-    Interpreter<[_0, [_0, _0, _0], [], []], '++++]'>,
-    ParseError<'Invalid loop'>
-  >>,
-  Assert<IsEq<
-    Interpreter<[_0, [_0, _0, _0], [], []], '+++[++'>,
-    ParseError<'Pending loop'>
-  >>,
-]
+  '### Sad path': [
+    'Parse errors',
+    Assert<IsEq<
+      Interpreter<[_0, [_0, _0, _0], [], []], 'klshjklsd'>,
+      ParseError<'Invalid character'>
+    >>,
+    Assert<IsEq<
+      Interpreter<[_0, [_0, _0, _0], [], []], '++++]'>,
+      ParseError<'Invalid loop'>
+    >>,
+    Assert<IsEq<
+      Interpreter<[_0, [_0, _0, _0], [], []], '+++[++'>,
+      ParseError<'Pending loop'>
+    >>,
+    'Out of bounds',
+    Assert<IsEq<
+      Interpreter<[_0, [_0, _0], [], []], '<<<+'>,
+      State<_0, [_1, _0], [], []>
+    >>,
+    Assert<IsEq<
+      Interpreter<[_0, [_0, _0], [], []], '>>>>>>+'>,
+      State<_6, [_0, _0], [], []>
+    >>,
+  ],
+}
 
