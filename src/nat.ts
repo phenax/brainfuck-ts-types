@@ -11,3 +11,12 @@ export type _2 = Succ<_1>
 export type _3 = Succ<_2>
 export type _4 = Succ<_3>
 export type _5 = Succ<_4>
+export type _6 = Succ<_5>
+export type _7 = Succ<_6>
+export type _8 = Succ<_7>
+
+export type GenerateList<Size extends Nat, Item extends Nat, Acc extends Nat[] = []> =
+  Size extends _0 ? Acc
+  : [Nat] extends [Size] ? Nat[]
+  : GenerateList<Pred<Size>, Item, [...Acc, Item]>
+

@@ -1,9 +1,4 @@
-import { Nat, Succ, Pred, _0, _1, _2, _3, _4, _5 } from './nat'
-
-type GenerateList<Size extends Nat, Item extends Nat, Acc extends Nat[] = []> =
-  Size extends _0 ? Acc
-  : [Nat] extends [Size] ? Nat[]
-  : GenerateList<Pred<Size>, Item, [...Acc, Item]>
+import { Nat, Succ, Pred, _0, _1, _2, _3, _4, _5, _6, _7, _8, GenerateList } from './nat'
 
 type State<Cur extends Nat, Cells extends Nat[], Out extends Nat[], LoopStack extends string[]> = [
   Cur,
@@ -17,14 +12,17 @@ type Operation<N extends Nat> = {
   Pred: Pred<N>,
 }
 
-type UpdateCellAt0<Ls extends Nat[], Op extends keyof Operation<Nat>> =
-  Ls extends [] ? [] : Ls extends [infer H extends Nat, ...infer T extends Nat[]] ? [Operation<H>[Op], ...T] : Ls
-
 type UpdateCellAtN<N extends Nat, Ls extends Nat[], Op extends keyof Operation<Nat>, Acc extends Nat[] = []> =
-  N extends _0 ? [...Acc, ...UpdateCellAt0<Ls, Op>]
+  N extends _0 ? [
+    ...Acc,
+    ...(Ls extends [] ? []
+      : Ls extends [infer H extends Nat, ...infer T extends Nat[]]
+      ? [Operation<H>[Op], ...T] : Ls
+    )
+  ]
   : Ls extends [infer H extends Nat, ...(infer Tail extends Nat[])]
     ? UpdateCellAtN<Pred<N>, Tail, Op, [...Acc, H]>
-  : never
+  : Ls
 
 type UpdateCell<St extends State<Nat, Nat[], Nat[], string[]>, Op extends keyof Operation<Nat>> = [
   St[0],
@@ -35,8 +33,9 @@ type UpdateCell<St extends State<Nat, Nat[], Nat[], string[]>, Op extends keyof 
 
 type GetCurCell<Cur extends Nat, Cells extends Nat[]> =
   Cur extends _0 ? Cells[0]
-  : Cells extends [any, ...(infer Tail extends Nat[])] ? GetCurCell<Pred<Cur>, Tail>
-  : never
+  : Cells extends [Nat, ...(infer tail extends Nat[])]
+    ? GetCurCell<Pred<Cur>, tail>
+    : never
 
 type whitespace = ' ' | '\n' | '\t'
 
@@ -51,16 +50,17 @@ type Interpreter<St extends State<Nat, Nat[], Nat[], string[]>, Expr extends str
   : Expr extends `[${infer rest extends string}` ? Interpreter<[St[0], St[1], St[2], [rest, ...St[3]]], rest>
   : Expr extends `]${infer rest extends string}` ?
     GetCurCell<St[0], St[1]> extends _0
-      ? Interpreter<[St[0], St[1], St[2], St[3] extends [any, ...(infer stack extends string[])] ? stack : []], rest>
-      : St[3] extends [infer goto extends string, ...any[]] ? Interpreter<St, goto> : never
+      ? Interpreter<[St[0], St[1], St[2], St[3] extends [string, ...(infer stack extends string[])] ? stack : []], rest>
+      : St[3] extends [infer goto extends string, ...string[]] ? Interpreter<St, goto> : never
   : never
 
-type _x = Interpreter<[_0, [_0, _0, _0], [], []], '++++++++ [>+ <-]'>
+type _x = Interpreter<[_0, GenerateList<_6, _0>, [], []], '+++>++++>++++<<[>+<-]>.[>+<-]>.'>
 
 type Assert<T extends true> = T
 type IsEq<A, B> = [A] extends [B] ? [B] extends [A] ? true : false : false
 
 export type _tests = [
+  'Increment/Decrement',
   Assert<IsEq<
     Interpreter<State<_0, GenerateList<_3, _0>, [], []>, '+++++'>,
     State<_0, [_5, _0, _0], [], []>
@@ -73,6 +73,8 @@ export type _tests = [
     Interpreter<State<_0, GenerateList<_3, _0>, [], []>, '+++++--'>,
     State<_0, [_3, _0, _0], [], []>
   >>,
+
+  'Shifts',
   Assert<IsEq<
     Interpreter<State<_1, GenerateList<_3, _0>, [], []>, '+>++'>,
     State<_2, [_0, _1, _2], [], []>
@@ -81,6 +83,8 @@ export type _tests = [
     Interpreter<State<_2, GenerateList<_3, _0>, [], []>, '++<+'>,
     State<_1, [_0, _1, _2], [], []>
   >>,
+
+  'Loops',
   Assert<IsEq<
     Interpreter<State<_0, [_3, _1, _1], [], []>, '[->+<]'>,
     State<_0, [_0, _4, _1], [], []>
@@ -88,6 +92,16 @@ export type _tests = [
   Assert<IsEq<
     Interpreter<State<_0, [_3, _1, _1], [], []>, '[->.+<]'>,
     State<_0, [_0, _4, _1], [_1, _2, _3], []>
+  >>,
+  Assert<IsEq<
+    Interpreter<[_0, [_0, _0, _0], [], []], '+++--+++++- [>+ <-]'>,
+    State<_0, [_0, _5, _0], [], []>
+  >>,
+
+  'Complex',
+  Assert<IsEq<
+    Interpreter<[_0, [_0, _0, _0], [], []], '+++>++++>++++<<[>+<-]>.[>+<-]>.'>,
+    State<_2, [_0, _0, Succ<Succ<Succ<_8>>>], [_7, Succ<Succ<Succ<_8>>>], []>
   >>,
 ]
 
