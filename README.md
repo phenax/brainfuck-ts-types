@@ -10,3 +10,6 @@ type result = Interpreter<InitState, '[>[->+>+<<]>[-<+>]<<-]>>>.'>
 type output = result[2] // :: [_8]
 ```
 
+[Stream archive playlist](https://www.youtube.com/watch?v=5c5J1eLJj-0&list=PLOJGAjhcTPJzcrymSNjyawkoajywpRA9j)
+
+[Built live on twitch](https://twitch.tv/ediblemonad)
